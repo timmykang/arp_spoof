@@ -11,10 +11,17 @@
 #include <unistd.h>
 #include <pcap.h>
 
+struct session 
+{
+	uint32_t sender_ip;
+	uint32_t target_ip;
+};
+
 extern uint8_t my_mac[6], my_ip[4];
 extern int session_cnt;
 extern map<uint32_t, uint8_t*> ip2mac;
 extern pcap_t *fp;
+extern vector<session> ip_vector;
 
 struct ether_header {
 	uint8_t	ether_dhost[6];
@@ -51,13 +58,6 @@ struct ip_header {
 };
 #define IP_HL(ip)		(((ip)->ip_vhl) & 0x0f)
 #define IP_V(ip)		(((ip)->ip_vhl) >> 4)
-
-
-struct session 
-{
-	uint32_t sender_ip;
-	uint32_t target_ip;
-};
 
 void get_my_ip(char * interface);
 
