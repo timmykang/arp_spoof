@@ -18,8 +18,8 @@ using namespace std;
 
 struct session 
 {
-	uint32_t send_ip;
-	uint32_t tar_ip;
+	uint32_t sender_ip;
+	uint32_t target_ip;
 };
 
 extern uint8_t my_mac[6], my_ip[4];
@@ -68,7 +68,7 @@ void get_my_ip(char * interface);
 
 void get_my_mac(char * interface);
 
-void get_sender_mac(uint8_t * sender_mac, uint8_t * sender_ip);
+void get_mac(uint8_t * sender_mac, uint8_t * sender_ip);
 
 void send_pkt(uint8_t * d_mac, uint8_t * s_mac, uint8_t * f_mac, uint8_t * d_ip, uint8_t * s_ip, uint16_t arp_operand);
 

