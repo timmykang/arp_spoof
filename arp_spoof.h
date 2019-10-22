@@ -1,4 +1,5 @@
 #pragma once
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -9,8 +10,10 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <pcap.h>
+#include <pthread.h>
 #include <map>
 #include <vector>
 
@@ -74,6 +77,10 @@ void send_pkt(uint8_t * d_mac, uint8_t * s_mac, uint8_t * f_mac, uint8_t * d_ip,
 
 void pkt_relay_recover(unsigned char *param,const struct pcap_pkthdr *header,const unsigned char *pkt_data);
 
-void arp_infection(session s);
+void arp_infection();
 
 void add_to_num(char * address, uint8_t * ip);
+
+void * infection_timer(void * arg);
+
+void * pkt_loop_thread(void * arg);

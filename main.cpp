@@ -20,6 +20,7 @@ int main(int argc, char * argv[]) {
 	char * interface = argv[1];
 	char errbuf[PCAP_ERRBUF_SIZE];
 	const u_char *packet;
+	pthread_t thread1, thread2;
 	struct pcap_pkthdr * header;	
 	fp = pcap_open_live(interface, BUFSIZ, 1, 1000, errbuf);
 	if (fp == NULL) {
@@ -32,19 +33,20 @@ int main(int argc, char * argv[]) {
 		session tmp;
 		tmp.sender_ip = inet_addr(argv[i * 2 + 2]);
 		if(ip2mac.find(tmp.sender_ip) == ip2mac.end()) {
-			ip2mac[tmp.sender_ip] = (uint8_t *)malloc(6);
+			ip2mac.insert({tmp.sender_ip, (uint8_t *)malloc(6)});
 			get_mac(ip2mac[tmp.sender_ip], (uint8_t *)&tmp.sender_ip);
 		}
 		tmp.target_ip = inet_addr(argv[i * 2 + 3]);
 		if(ip2mac.find(tmp.target_ip) == ip2mac.end()) {
-			ip2mac[tmp.target_ip] = (uint8_t *)malloc(6);
+			ip2mac.insert({tmp.target_ip, (uint8_t *)malloc(6)});
 			get_mac(ip2mac[tmp.target_ip], (uint8_t *)&tmp.target_ip);
 		}
+		ip_vector.push_back(tmp);
 	}
-	for(int i = 0; i < session_cnt; i++) {
-		arp_infection(ip_vector[i]);
-	}
-	pcap_loop(fp, 0, pkt_relay_recover, NULL);
+	pthread_create(&thread1, NULL, infection_timer, NULL);
+	pthread_create(&thread2, NULL, pkt_loop_thread, NULL);
+	pthread_join(thread1, NULL);
+	pthread_join(thread2, NULL);
 	pcap_close(fp);
 	return 0;
 }
