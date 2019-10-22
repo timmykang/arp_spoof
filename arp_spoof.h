@@ -4,17 +4,22 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
-#include <netdb/h>
 #include <string.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <pcap.h>
+#include <map>
+#include <vector>
+
+using namespace std;
 
 struct session 
 {
-	uint32_t sender_ip;
-	uint32_t target_ip;
+	uint32_t send_ip;
+	uint32_t tar_ip;
 };
 
 extern uint8_t my_mac[6], my_ip[4];
