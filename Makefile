@@ -1,12 +1,12 @@
 all: arp_spoof
 
-arp_spoof: main.o arp.o
+arp_spoof: main.o arp_spoof.o
 	g++ -o arp_spoof main.o arp_spoof.o -lpcap
 
-arp.o: arp.cpp arp.h
+arp.o: arp_spoof.cpp arp_spoof.h
 	g++ -c -o arp_spoof.o arp_spoof.cpp
 
-main.o: main.cpp arp.h
+main.o: main.cpp arp_spoof.h
 	g++ -c -o main.o main.cpp
 
 clean:
